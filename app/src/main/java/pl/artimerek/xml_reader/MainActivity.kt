@@ -4,20 +4,13 @@ import android.os.AsyncTask
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
-import java.io.BufferedReader
-import java.io.IOException
-import java.io.InputStreamReader
-import java.lang.StringBuilder
-import java.net.HttpURLConnection
-import java.net.MalformedURLException
 import java.net.URL
-
-// TODO -> permissions
 
 class MainActivity : AppCompatActivity() {
 
     private val TAG = "MainActivity"
-    private val URL_TOP_TEN = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topsongs/limit=10/xml"
+    private val URL_TOP_TEN =
+        "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topsongs/limit=10/xml"
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,42 +38,11 @@ class MainActivity : AppCompatActivity() {
 
             override fun onPostExecute(result: String?) {
                 super.onPostExecute(result)
-                Log.d(TAG, "doInBackground called")
+                Log.d(TAG, "doInBackground called $result")
             }
 
             private fun downloadXML(urlPath: String?): String {
-                val xmlResult = StringBuilder()
-
-                try {
-                    val url = URL(urlPath)
-                    val connection: HttpURLConnection = url.openConnection() as HttpURLConnection
-                    val response = connection.responseCode
-
-                    Log.d(TAG, "download XML: response $response")
-
-                    val reader = BufferedReader(InputStreamReader(connection.inputStream))
-                    val inputBuffer = CharArray(500)
-                    var charsRead = 0
-
-                    while (charsRead >= 0) {
-                        charsRead = reader.read(inputBuffer)
-                        if (charsRead > 0) {
-                            xmlResult.append(String(inputBuffer, 0, charsRead))
-                        }
-                    }
-                    reader.close()
-
-                    Log.d(TAG, "Received ${xmlResult.length} bytes")
-                    return xmlResult.toString()
-                } catch (e: MalformedURLException) {
-                    Log.e(TAG, "downloadXML: Invalid URL ${e.message}")
-                } catch (e: IOException) {
-                    Log.e(TAG, "downloadXML: IOException reading data ${e.message}")
-                } catch (e: Exception) {
-                    Log.e(TAG, "downloadXML: unknown error occurs ${e.message}")
-                }
-
-                return ""
+                return URL(urlPath).readText()
             }
         }
     }
