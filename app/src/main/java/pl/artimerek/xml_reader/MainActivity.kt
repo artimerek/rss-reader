@@ -4,6 +4,7 @@ import android.os.AsyncTask
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import pl.artimerek.xml_reader.parse.Parser
 import java.net.URL
 
 class MainActivity : AppCompatActivity() {
@@ -36,9 +37,10 @@ class MainActivity : AppCompatActivity() {
                 return rssFeed
             }
 
-            override fun onPostExecute(result: String?) {
+            override fun onPostExecute(result: String) {
                 super.onPostExecute(result)
-                Log.d(TAG, "doInBackground called $result")
+                val parser = Parser()
+                parser.parse(result)
             }
 
             private fun downloadXML(urlPath: String?): String {
