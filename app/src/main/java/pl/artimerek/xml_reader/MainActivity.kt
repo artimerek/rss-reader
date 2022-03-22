@@ -17,11 +17,29 @@ import pl.artimerek.xml_reader.urls.RssUrl
 class MainActivity : AppCompatActivity() {
 
     private var downloadData: DownloadData? = null
+    private var feedLimit = 10
+    private var feedUrl: String = ""
+
+    private var feedCachedUrl = "INVALIDATED"
+    private val STATE_URL = "feedURL"
+    private val STATE_LIMIT = "feedLimit"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        downloadUrl(RssUrl.SONGS.type)
+
+        if (savedInstanceState != null) {
+            feedUrl = savedInstanceState.getString(STATE_URL).toString()
+            feedLimit = savedInstanceState.getInt(STATE_LIMIT)
+        }
+
+        downloadUrl(RssUrl.SONGS.type.format(feedLimit))
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(STATE_URL, feedUrl)
+        outState.putInt(STATE_LIMIT, feedLimit)
     }
 
     override fun onDestroy() {
@@ -31,24 +49,33 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
 
-        val feedUrl: String = when (item.itemId) {
+        when (item.itemId) {
             R.id.menuSongs ->
-                RssUrl.SONGS.type
+                feedUrl = RssUrl.SONGS.type
             R.id.menuPaid ->
-                RssUrl.PAID.type
+                feedUrl = RssUrl.PAID.type
             R.id.menuFree ->
-                RssUrl.FREE.type
+                feedUrl = RssUrl.FREE.type
+            R.id.menu10, R.id.menu25 -> {
+                if (!item.isChecked) {
+                    item.isChecked = true
+                    feedLimit = 35 - feedLimit
+                }
+            }
+            R.id.menuRefresh -> feedCachedUrl = "INVALIDATED"
             else ->
                 return super.onOptionsItemSelected(item)
         }
-
-        downloadUrl(feedUrl)
+        downloadUrl(feedUrl.format(feedLimit))
         return true
     }
 
     private fun downloadUrl(feedUrl: String) {
-        downloadData = DownloadData(this, xmlListView)
-        downloadData?.execute(feedUrl)
+        if (feedUrl != feedCachedUrl) {
+            downloadData = DownloadData(this, xmlListView)
+            downloadData?.execute(feedUrl)
+            feedCachedUrl = feedUrl
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {

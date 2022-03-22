@@ -9,11 +9,10 @@ import java.util.*
 import kotlin.collections.ArrayList
 
 class Parser {
-    private val TAG = "Parser"
+
     val apps = ArrayList<FeedEntry>()
 
     fun parse(xmlData: String): Boolean {
-        Log.d(TAG, "parse called with $xmlData")
         var status = true
         var inEntry = false
         var textValue = ""
@@ -32,7 +31,6 @@ class Parser {
                 val tagName = xpp.name?.lowercase(Locale.getDefault())
                 when (eventType) {
                     XmlPullParser.START_TAG -> {
-                        Log.d(TAG, "parse: Starting tag for $tagName")
                         if (tagName == "entry") {
                             inEntry = true
                         }
@@ -41,7 +39,6 @@ class Parser {
                     XmlPullParser.TEXT -> textValue = xpp.text
 
                     XmlPullParser.END_TAG -> {
-                        Log.d(TAG, "parse: Ending tag for $tagName")
                         if (inEntry) {
                             when (tagName) {
                                 "entry" -> {
@@ -62,8 +59,6 @@ class Parser {
 
                 eventType = xpp.next()
             }
-
-            for (app in apps) Log.d(TAG, app.toString())
 
         } catch (e: Exception) {
             e.printStackTrace()
