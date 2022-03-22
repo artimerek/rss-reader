@@ -10,23 +10,27 @@ import android.widget.ListView
 import pl.artimerek.xml_reader.parse.Parser
 import java.net.URL
 import kotlin.properties.Delegates
+import kotlinx.android.synthetic.main.activity_main.*
+import pl.artimerek.xml_reader.adapter.FeedAdapter
 
 class MainActivity : AppCompatActivity() {
 
     private val TAG = "MainActivity"
+    private val downloadData by lazy { DownloadData(this, xmlListView) }
     private val URL_TOP_TEN =
         "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topsongs/limit=10/xml"
-
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         Log.d(TAG, "onCreateCalled")
-        val xmlListView = this.findViewById<ListView>(R.id.xmlListView)
-        val downloadData = DownloadData(this, xmlListView)
         downloadData.execute(URL_TOP_TEN)
         Log.d(TAG, "onCreate done")
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        downloadData.cancel(true)
     }
 
     companion object {
@@ -56,8 +60,8 @@ class MainActivity : AppCompatActivity() {
                 val parser = Parser()
                 parser.parse(result)
 
-                val arrayAdapter = ArrayAdapter(propContext, R.layout.list_item, parser.apps)
-                propListView.adapter = arrayAdapter
+                val feedAdapter = FeedAdapter(propContext, R.layout.list_record, parser.apps)
+                propListView.adapter = feedAdapter
             }
 
             private fun downloadXML(urlPath: String?): String {
