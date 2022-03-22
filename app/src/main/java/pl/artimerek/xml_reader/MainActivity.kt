@@ -4,39 +4,88 @@ import android.content.Context
 import android.os.AsyncTask
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
-import android.widget.ArrayAdapter
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.ListView
 import pl.artimerek.xml_reader.parse.Parser
 import java.net.URL
 import kotlin.properties.Delegates
 import kotlinx.android.synthetic.main.activity_main.*
 import pl.artimerek.xml_reader.adapter.FeedAdapter
+import pl.artimerek.xml_reader.urls.RssUrl
 
 class MainActivity : AppCompatActivity() {
 
-    private val TAG = "MainActivity"
-    private val downloadData by lazy { DownloadData(this, xmlListView) }
-    private val URL_TOP_TEN =
-        "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topsongs/limit=10/xml"
+    private var downloadData: DownloadData? = null
+    private var feedLimit = 10
+    private var feedUrl: String = ""
+
+    private var feedCachedUrl = "INVALIDATED"
+    private val STATE_URL = "feedURL"
+    private val STATE_LIMIT = "feedLimit"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        Log.d(TAG, "onCreateCalled")
-        downloadData.execute(URL_TOP_TEN)
-        Log.d(TAG, "onCreate done")
+
+        if (savedInstanceState != null) {
+            feedUrl = savedInstanceState.getString(STATE_URL).toString()
+            feedLimit = savedInstanceState.getInt(STATE_LIMIT)
+        }
+
+        downloadUrl(RssUrl.SONGS.type.format(feedLimit))
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(STATE_URL, feedUrl)
+        outState.putInt(STATE_LIMIT, feedLimit)
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        downloadData.cancel(true)
+        downloadData?.cancel(true)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+
+        when (item.itemId) {
+            R.id.menuSongs ->
+                feedUrl = RssUrl.SONGS.type
+            R.id.menuPaid ->
+                feedUrl = RssUrl.PAID.type
+            R.id.menuFree ->
+                feedUrl = RssUrl.FREE.type
+            R.id.menu10, R.id.menu25 -> {
+                if (!item.isChecked) {
+                    item.isChecked = true
+                    feedLimit = 35 - feedLimit
+                }
+            }
+            R.id.menuRefresh -> feedCachedUrl = "INVALIDATED"
+            else ->
+                return super.onOptionsItemSelected(item)
+        }
+        downloadUrl(feedUrl.format(feedLimit))
+        return true
+    }
+
+    private fun downloadUrl(feedUrl: String) {
+        if (feedUrl != feedCachedUrl) {
+            downloadData = DownloadData(this, xmlListView)
+            downloadData?.execute(feedUrl)
+            feedCachedUrl = feedUrl
+        }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.feeds_menu, menu)
+        return true
     }
 
     companion object {
-        private class DownloadData(context: Context, listView: ListView) : AsyncTask<String, Void, String>() {
-
-            private val TAG = "DownloadData"
+        private class DownloadData(context: Context, listView: ListView) :
+            AsyncTask<String, Void, String>() {
 
             private var propContext: Context by Delegates.notNull()
             private var propListView: ListView by Delegates.notNull()
@@ -47,12 +96,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun doInBackground(vararg url: String?): String {
-                Log.d(TAG, "doInBackground called ${url[0]}")
-                val rssFeed = downloadXML(url[0])
-                if (rssFeed.isEmpty()) {
-                    Log.e(TAG, "doInBackground: Error downloading")
-                }
-                return rssFeed
+                return downloadXML(url[0])
             }
 
             override fun onPostExecute(result: String) {
